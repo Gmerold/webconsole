@@ -6,6 +6,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -153,6 +154,9 @@ func configHandler(configMsgChan chan *configmodels.ConfigMessage, configReceive
 						logger.DbLog.Warnln(errDelOne)
 					}
 				}
+				if factory.WebUIConfig.Configuration.SendPebbleNotifications {
+					SendPebbleNotification()
+				}
 				rwLock.Unlock()
 			} else {
 				configLog.Infof("Received delete Subscriber [%v] from config channel", configMsg.Imsi)
@@ -217,6 +221,9 @@ func handleNetworkSlicePost(configMsg *configmodels.ConfigMessage, subsUpdateCha
 	_, errPost := dbadapter.CommonDBClient.RestfulAPIPost(sliceDataColl, filter, sliceDataBsonA)
 	if errPost != nil {
 		logger.DbLog.Warnln(errPost)
+	}
+	if factory.WebUIConfig.Configuration.SendPebbleNotifications {
+		SendPebbleNotification()
 	}
 	rwLock.Unlock()
 }
@@ -751,4 +758,12 @@ func mapToByte(data map[string]interface{}) (ret []byte) {
 func SnssaiModelsToHex(snssai models.Snssai) string {
 	sst := fmt.Sprintf("%02x", snssai.Sst)
 	return sst + snssai.Sd
+}
+
+func SendPebbleNotification() error {
+	cmd := exec.Command("pebble", "notify")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("couldn't execute a pebble notify: %w", err)
+	}
+	return nil
 }
