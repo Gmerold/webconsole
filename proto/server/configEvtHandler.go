@@ -133,31 +133,17 @@ func configHandler(configMsgChan chan *configmodels.ConfigMessage, configReceive
 					handleUpfDelete(configMsg)
 				}
 			} else if configMsg.MsgType != configmodels.Sub_data {
-				rwLock.Lock()
 				// update config snapshot
 				if configMsg.DevGroup == nil {
 					configLog.Infof("Received delete Device Group [%v] from config channel", configMsg.DevGroupName)
-					config5gMsg.PrevDevGroup = getDeviceGroupByName(configMsg.DevGroupName)
-					filter := bson.M{"group-name": configMsg.DevGroupName}
-					errDelOne := dbadapter.CommonDBClient.RestfulAPIDeleteOne(devGroupDataColl, filter)
-					if errDelOne != nil {
-						logger.DbLog.Warnln(errDelOne)
-					}
+					handleDeviceGroupDelete(configMsg, subsUpdateChan)
+
 				}
 
 				if configMsg.Slice == nil {
 					configLog.Infof("Received delete Slice [%v] from config channel", configMsg.SliceName)
-					config5gMsg.PrevSlice = getSliceByName(configMsg.SliceName)
-					filter := bson.M{"SliceName": configMsg.SliceName}
-					errDelOne := dbadapter.CommonDBClient.RestfulAPIDeleteOne(sliceDataColl, filter)
-					if errDelOne != nil {
-						logger.DbLog.Warnln(errDelOne)
-					}
+					handleNetworkSliceDelete(configMsg, subsUpdateChan)
 				}
-				if factory.WebUIConfig.Configuration.SendPebbleNotifications {
-					SendPebbleNotification("canonical.com/webconsole/networkslice/delete")
-				}
-				rwLock.Unlock()
 			} else {
 				configLog.Infof("Received delete Subscriber [%v] from config channel", configMsg.Imsi)
 			}
@@ -208,6 +194,22 @@ func handleDeviceGroupPost(configMsg *configmodels.ConfigMessage, subsUpdateChan
 	rwLock.Unlock()
 }
 
+func handleDeviceGroupDelete(configMsg *configmodels.ConfigMessage, subsUpdateChan chan *Update5GSubscriberMsg) {
+	rwLock.Lock()
+	if factory.WebUIConfig.Configuration.Mode5G {
+		var config5gMsg Update5GSubscriberMsg
+		config5gMsg.Msg = configMsg
+		config5gMsg.PrevDevGroup = getDeviceGroupByName(configMsg.DevGroupName)
+		subsUpdateChan <- &config5gMsg
+	}
+	filter := bson.M{"group-name": configMsg.DevGroupName}
+	errDelOne := dbadapter.CommonDBClient.RestfulAPIDeleteOne(devGroupDataColl, filter)
+	if errDelOne != nil {
+		logger.DbLog.Warnln(errDelOne)
+	}
+	rwLock.Unlock()
+}
+
 func handleNetworkSlicePost(configMsg *configmodels.ConfigMessage, subsUpdateChan chan *Update5GSubscriberMsg) {
 	rwLock.Lock()
 	if factory.WebUIConfig.Configuration.Mode5G {
@@ -223,7 +225,26 @@ func handleNetworkSlicePost(configMsg *configmodels.ConfigMessage, subsUpdateCha
 		logger.DbLog.Warnln(errPost)
 	}
 	if factory.WebUIConfig.Configuration.SendPebbleNotifications {
-		SendPebbleNotification("canonical.com/webconsole/networkslice/create")
+		sendPebbleNotification("canonical.com/webconsole/networkslice/create")
+	}
+	rwLock.Unlock()
+}
+
+func handleNetworkSliceDelete(configMsg *configmodels.ConfigMessage, subsUpdateChan chan *Update5GSubscriberMsg) {
+	rwLock.Lock()
+	if factory.WebUIConfig.Configuration.Mode5G {
+		var config5gMsg Update5GSubscriberMsg
+		config5gMsg.Msg = configMsg
+		config5gMsg.PrevSlice = getSliceByName(configMsg.SliceName)
+		subsUpdateChan <- &config5gMsg
+	}
+	filter := bson.M{"SliceName": configMsg.SliceName}
+	errDelOne := dbadapter.CommonDBClient.RestfulAPIDeleteOne(sliceDataColl, filter)
+	if errDelOne != nil {
+		logger.DbLog.Warnln(errDelOne)
+	}
+	if factory.WebUIConfig.Configuration.SendPebbleNotifications {
+		sendPebbleNotification("canonical.com/webconsole/networkslice/delete")
 	}
 	rwLock.Unlock()
 }
@@ -760,8 +781,10 @@ func SnssaiModelsToHex(snssai models.Snssai) string {
 	return sst + snssai.Sd
 }
 
-func SendPebbleNotification(key string) error {
-	cmd := exec.Command("pebble", "notify", key)
+var execCommand = exec.Command
+
+func sendPebbleNotification(key string) error {
+	cmd := execCommand("pebble", "notify", key)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("couldn't execute a pebble notify: %w", err)
 	}
