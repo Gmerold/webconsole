@@ -765,5 +765,6 @@ func SendPebbleNotification(key string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("couldn't execute a pebble notify: %w", err)
 	}
+	configLog.Infof("custom Pebble notification sent")
 	return nil
 }
