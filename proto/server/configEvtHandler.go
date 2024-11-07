@@ -133,10 +133,6 @@ func configHandler(configMsgChan chan *configmodels.ConfigMessage, configReceive
 					handleUpfDelete(configMsg)
 				}
 			} else if configMsg.MsgType != configmodels.Sub_data {
-				configLog.Infof("============================================================================================")
-				configMsgString, _ := json.Marshal(configMsg)
-				configLog.Infof(string(configMsgString))
-				configLog.Infof("============================================================================================")
 				// update config snapshot
 				if configMsg.DevGroup == nil && configMsg.DevGroupName != "" {
 					configLog.Infof("Received delete Device Group [%v] from config channel", configMsg.DevGroupName)
