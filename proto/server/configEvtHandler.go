@@ -138,13 +138,13 @@ func configHandler(configMsgChan chan *configmodels.ConfigMessage, configReceive
 				configLog.Infof(string(configMsgString))
 				configLog.Infof("============================================================================================")
 				// update config snapshot
-				if configMsg.DevGroup == nil {
+				if configMsg.DevGroup == nil && configMsg.DevGroupName != "" {
 					configLog.Infof("Received delete Device Group [%v] from config channel", configMsg.DevGroupName)
 					handleDeviceGroupDelete(configMsg, subsUpdateChan)
 
 				}
 
-				if configMsg.Slice == nil {
+				if configMsg.Slice == nil && configMsg.SliceName != "" {
 					configLog.Infof("Received delete Slice [%v] from config channel", configMsg.SliceName)
 					handleNetworkSliceDelete(configMsg, subsUpdateChan)
 				}
