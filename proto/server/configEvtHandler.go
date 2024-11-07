@@ -155,7 +155,7 @@ func configHandler(configMsgChan chan *configmodels.ConfigMessage, configReceive
 					}
 				}
 				if factory.WebUIConfig.Configuration.SendPebbleNotifications {
-					SendPebbleNotification()
+					SendPebbleNotification("canonical.com/webconsole/networkslice/delete")
 				}
 				rwLock.Unlock()
 			} else {
@@ -223,7 +223,7 @@ func handleNetworkSlicePost(configMsg *configmodels.ConfigMessage, subsUpdateCha
 		logger.DbLog.Warnln(errPost)
 	}
 	if factory.WebUIConfig.Configuration.SendPebbleNotifications {
-		SendPebbleNotification()
+		SendPebbleNotification("canonical.com/webconsole/networkslice/create")
 	}
 	rwLock.Unlock()
 }
@@ -760,8 +760,8 @@ func SnssaiModelsToHex(snssai models.Snssai) string {
 	return sst + snssai.Sd
 }
 
-func SendPebbleNotification() error {
-	cmd := exec.Command("pebble", "notify")
+func SendPebbleNotification(key string) error {
+	cmd := exec.Command("pebble", "notify", key)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("couldn't execute a pebble notify: %w", err)
 	}
