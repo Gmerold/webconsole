@@ -7,6 +7,7 @@ package configapi
 
 import (
 	"math"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -20,6 +21,7 @@ const (
 	KPS = 1000
 	MPS = 1000000
 	GPS = 1000000000
+	NAME_PATTERN = "^[a-zA-Z0-9-_]+$"
 )
 
 var configChannel chan *configmodels.ConfigMessage
@@ -63,6 +65,10 @@ func DeviceGroupPostHandler(c *gin.Context, msgOp int) bool {
 	var exists bool
 	if groupName, exists = c.Params.Get("group-name"); exists {
 		logger.ConfigLog.Infof("received group %v", groupName)
+	}
+	if ! validateName(groupName) {
+		logger.ConfigLog.Errorf("invalid Device Group name %s. Name needs to match the following regular expression: %s", groupName, NAME_PATTERN)
+		return false
 	}
 
 	var err error
@@ -141,6 +147,10 @@ func NetworkSlicePostHandler(c *gin.Context, msgOp int) bool {
 	var exists bool
 	if sliceName, exists = c.Params.Get("slice-name"); exists {
 		logger.ConfigLog.Infof("received slice: %v", sliceName)
+	}
+	if ! validateName(sliceName) {
+		logger.ConfigLog.Errorf("invalid Network Slice name %s. Name needs to match the following regular expression: %s", sliceName, NAME_PATTERN)
+		return false
 	}
 
 	var err error
@@ -226,5 +236,13 @@ func NetworkSlicePostHandler(c *gin.Context, msgOp int) bool {
 	msg.SliceName = sliceName
 	configChannel <- &msg
 	logger.ConfigLog.Infof("successfully Added Slice [%v] to config channel", sliceName)
+	return true
+}
+
+func validateName(name string) bool {
+	nameMatch, err := regexp.MatchString(NAME_PATTERN, name)
+	if err != nil || ! nameMatch {
+		return false
+	}
 	return true
 }

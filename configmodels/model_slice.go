@@ -15,7 +15,7 @@
 package configmodels
 
 type Slice struct {
-	SliceName string `json:"slice-name,omitempty" validate:"regexp=^[a-zA-Z0-9-_]+$"`
+	SliceName string `json:"slice-name,omitempty"`
 
 	SliceId SliceSliceId `json:"slice-id,omitempty"`
 
