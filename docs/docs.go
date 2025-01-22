@@ -728,7 +728,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/config/v1/inventory/upf/{upf-hostname}": {
+        "/config/v1/inventory/upf/{upf-url}": {
             "post": {
                 "security": [
                     {
@@ -746,7 +746,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Name of the UPF",
-                        "name": "upf-hostname",
+                        "name": "upf-url",
                         "in": "path",
                         "required": true
                     },
@@ -792,7 +792,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Name of the UPF",
-                        "name": "upf-hostname",
+                        "name": "upf-url",
                         "in": "path",
                         "required": true
                     }
@@ -813,7 +813,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/config/v1/network-slice/": {
+        "/config/v1/network-slice": {
             "get": {
                 "security": [
                     {
@@ -849,7 +849,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/config/v1/network-slice/{sliceName": {
+        "/config/v1/network-slice/{sliceName}": {
             "post": {
                 "security": [
                     {

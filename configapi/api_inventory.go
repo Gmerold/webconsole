@@ -114,6 +114,11 @@ func handlePostGnb(c *gin.Context) error {
 		return fmt.Errorf("%s", errorMessage)
 	}
 	logger.ConfigLog.Infof("received gNB %v", gnbName)
+	if !validateName(gnbName) {
+		errorMessage := fmt.Sprintf("invalid gNB name %s. Name needs to match the following regular expression: %s", gnbName, NAME_PATTERN)
+		logger.ConfigLog.Errorln(errorMessage)
+		return fmt.Errorf("%s", errorMessage)
+	}
 	if !strings.HasPrefix(c.GetHeader("Content-Type"), "application/json") {
 		return fmt.Errorf("invalid header")
 	}
@@ -200,14 +205,14 @@ func GetUpfs(c *gin.Context) {
 // @Description  Create a new UPF
 // @Tags         UPFs
 // @Produce      json
-// @Param        upf-hostname   path    string                         true    "Name of the UPF"
+// @Param        upf-url   path    string                         true    "URL of the UPF"
 // @Param        port           body    configmodels.PostUpfRequest    true    "Port of the UPF"
 // @Security     BearerAuth
 // @Success      200  {object}  nil  "UPF created"
 // @Failure      400  {object}  nil  "Failed to create the UPF"
 // @Failure      401  {object}  nil  "Authorization failed"
 // @Failure      403  {object}  nil  "Forbidden"
-// @Router       /config/v1/inventory/upf/{upf-hostname}  [post]
+// @Router       /config/v1/inventory/upf/{upf-url}  [post]
 func PostUpf(c *gin.Context) {
 	setInventoryCorsHeader(c)
 	if err := handlePostUpf(c); err == nil {
@@ -222,13 +227,13 @@ func PostUpf(c *gin.Context) {
 // @Description  Delete an existing UPF
 // @Tags         UPFs
 // @Produce      json
-// @Param        upf-hostname    path    string    true    "Name of the UPF"
+// @Param        upf-url    path    string    true    "URL of the UPF"
 // @Security     BearerAuth
 // @Success      200  {object}  nil  "UPF deleted"
 // @Failure      400  {object}  nil  "Failed to delete the UPF"
 // @Failure      401  {object}  nil  "Authorization failed"
 // @Failure      403  {object}  nil  "Forbidden"
-// @Router       /config/v1/inventory/upf/{upf-hostname}  [delete]
+// @Router       /config/v1/inventory/upf/{upf-url}  [delete]
 func DeleteUpf(c *gin.Context) {
 	setInventoryCorsHeader(c)
 	if err := handleDeleteUpf(c); err == nil {
@@ -239,13 +244,18 @@ func DeleteUpf(c *gin.Context) {
 }
 
 func handlePostUpf(c *gin.Context) error {
-	upfHostname, exists := c.Params.Get("upf-hostname")
+	upfURL, exists := c.Params.Get("upf-url")
 	if !exists {
-		errorMessage := "post UPF request is missing upf-hostname"
+		errorMessage := "post UPF request is missing upf-url"
 		logger.ConfigLog.Errorln(errorMessage)
 		return fmt.Errorf("%s", errorMessage)
 	}
-	logger.ConfigLog.Infof("received UPF %v", upfHostname)
+	logger.ConfigLog.Infof("received UPF %v", upfURL)
+	if !validateURL(upfURL) {
+		errorMessage := fmt.Sprintf("invalid UPF url %s. Name needs to represent a valid URL", upfURL)
+		logger.ConfigLog.Errorln(errorMessage)
+		return fmt.Errorf("%s", errorMessage)
+	}
 	if !strings.HasPrefix(c.GetHeader("Content-Type"), "application/json") {
 		return fmt.Errorf("invalid header")
 	}
@@ -261,7 +271,7 @@ func handlePostUpf(c *gin.Context) error {
 		return fmt.Errorf("%s", errorMessage)
 	}
 	postUpf := configmodels.Upf{
-		Hostname: upfHostname,
+		Hostname: upfURL,
 		Port:     postUpfRequest.Port,
 	}
 	msg := configmodels.ConfigMessage{
@@ -270,24 +280,24 @@ func handlePostUpf(c *gin.Context) error {
 		Upf:       &postUpf,
 	}
 	configChannel <- &msg
-	logger.ConfigLog.Infof("successfully added UPF [%v] to config channel", upfHostname)
+	logger.ConfigLog.Infof("successfully added UPF [%v] to config channel", upfURL)
 	return nil
 }
 
 func handleDeleteUpf(c *gin.Context) error {
-	upfHostname, exists := c.Params.Get("upf-hostname")
+	upfURL, exists := c.Params.Get("upf-url")
 	if !exists {
-		errorMessage := "delete UPF request is missing upf-hostname"
+		errorMessage := "delete UPF request is missing upf-url"
 		logger.ConfigLog.Errorln(errorMessage)
 		return fmt.Errorf("%s", errorMessage)
 	}
-	logger.ConfigLog.Infof("received delete UPF %v", upfHostname)
+	logger.ConfigLog.Infof("received delete UPF %v", upfURL)
 	msg := configmodels.ConfigMessage{
 		MsgType:     configmodels.Inventory,
 		MsgMethod:   configmodels.Delete_op,
-		UpfHostname: upfHostname,
+		UpfHostname: upfURL,
 	}
 	configChannel <- &msg
-	logger.ConfigLog.Infof("successfully added UPF [%v] with delete_op to config channel", upfHostname)
+	logger.ConfigLog.Infof("successfully added UPF [%v] with delete_op to config channel", upfURL)
 	return nil
 }
